@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 
 from app.config import get_settings
@@ -42,3 +43,28 @@ app.include_router(users.router)
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "app": "Vegora Social"}
+
+
+# Serve frontend static files (must be LAST, after all API routes)
+FRONTEND_DIR = os.environ.get("FRONTEND_DIR", "/app/frontend")
+if os.path.isdir(FRONTEND_DIR):
+    # Serve static assets (css, js, images, etc.)
+    app.mount("/css", StaticFiles(directory=os.path.join(FRONTEND_DIR, "css")), name="css")
+    app.mount("/js", StaticFiles(directory=os.path.join(FRONTEND_DIR, "js")), name="js")
+    if os.path.isdir(os.path.join(FRONTEND_DIR, "images")):
+        app.mount("/images", StaticFiles(directory=os.path.join(FRONTEND_DIR, "images")), name="images")
+    if os.path.isdir(os.path.join(FRONTEND_DIR, "assets")):
+        app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIR, "assets")), name="assets")
+
+    # Catch-all: serve HTML files or index.html
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Try exact file match (e.g., community.html, register.html)
+        file_path = os.path.join(FRONTEND_DIR, full_path)
+        if full_path and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        # Default to index.html
+        index = os.path.join(FRONTEND_DIR, "index.html")
+        if os.path.isfile(index):
+            return FileResponse(index)
+        return {"detail": "Not found"}
