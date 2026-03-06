@@ -6,8 +6,10 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: vegora_social
-    ports:
-      - "5436:5432"
+    # DB port NOT exposed to host - only accessible by api container internally
+    # Uncomment below if you need direct host access to PostgreSQL:
+    # ports:
+    #   - "5436:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +22,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "8002:8000"
+      - "9876:8000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/vegora_social
       SECRET_KEY: ${SECRET_KEY:-change-this-in-production}
