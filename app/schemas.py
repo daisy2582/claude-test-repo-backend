@@ -34,6 +34,11 @@ class UserProfile(UserOut):
     total_karma: int = 0
 
 
+class UserUpdate(BaseModel):
+    display_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    bio: Optional[str] = None
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
