@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+import re
 
 from app.config import get_settings
 from app.database import engine, Base
@@ -15,10 +16,27 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS
+# CORS - allow configured origins + dynamically allow ngrok subdomains
 origins = [o.strip() for o in settings.cors_origins.split(",")]
+
+# Ngrok pattern for dynamic origin matching
+NGROK_PATTERN = re.compile(r"^https://[a-z0-9-]+\.ngrok-free\.app$")
+
+
+class DynamicCORSMiddleware(CORSMiddleware):
+    """Extends CORSMiddleware to dynamically allow ngrok origins."""
+
+    def is_allowed_origin(self, origin: str) -> bool:
+        if super().is_allowed_origin(origin):
+            return True
+        # Allow any ngrok-free.app subdomain
+        if NGROK_PATTERN.match(origin):
+            return True
+        return False
+
+
 app.add_middleware(
-    CORSMiddleware,
+    DynamicCORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
